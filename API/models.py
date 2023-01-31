@@ -43,6 +43,8 @@ class Devices(Base):
 
     ean_device_id = Column(Integer, ForeignKey('ean_devices.ean_device_id'))
     location_id = Column(Integer, ForeignKey('locations.location_id'))
+    quantity = Column(Integer)
+    condition = Column(String)
     status = Column(String)
     date_added = Column(Date)
     qr_code = Column(String)

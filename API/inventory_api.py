@@ -274,6 +274,7 @@ async def get_ean_device_by_ean_code(ean_code: str, db: Session = Depends(get_db
 
 @app.post("/ean_devices/name", response_model=schemas.EANDevicesSchema, tags=["EAN Devices"], status_code=201)
 async def create_ean_device_by_name(ean_device: schemas.EANDevicesSchema, db: Session = Depends(get_db)):
+    # print(ean_device)
     db_ean_device = crud.get_device_by_ean_code(db, ean_code=ean_device.ean)
     if db_ean_device:
         raise HTTPException(status_code=400, detail="EAN Device already exists")
@@ -300,9 +301,30 @@ async def create_ean_device_by_id(ean_device: schemas.EANDevicesSchema, db: Sess
     return crud.create_ean_device_by_id(db=db, ean_device=ean_device)
 
 
-@app.put("/ean_devices/name/{ean_code}", response_model=schemas.EANDevicesSchema, tags=["EAN Devices"])
-async def update_ean_device_by_ean(ean_device_code: str, ean_device: schemas.EANDevicesSchema, db: Session = Depends(get_db)):
-    db_ean_device = crud.get_device_by_ean_code(db, ean_code=ean_device_code)
+# @app.put("/ean_devices/name/{ean_code}", response_model=schemas.EANDevicesSchema, tags=["EAN Devices"])
+# async def update_ean_device_by_ean(ean_device_code: str, ean_device: schemas.EANDevicesSchema, db: Session = Depends(get_db)):
+#     db_ean_device = crud.get_device_by_ean_code(db, ean_code=ean_device_code)
+#     if db_ean_device is None:
+#         raise HTTPException(status_code=404, detail="EAN Device not found")
+#     n_ean_device = db.query(models.EAN_Devices).filter(models.EAN_Devices.ean == ean_device.ean).first()
+#     if n_ean_device is not None and n_ean_device.ean != db_ean_device.ean:
+#         raise HTTPException(status_code=400, detail="EAN Device already exists")
+#     category = db.query(models.Categories).filter(models.Categories.name == ean_device.category.name).first()
+#     if not category:
+#         raise HTTPException(status_code=400, detail="Category doesn't exist")
+#     producer = db.query(models.Producers).filter(models.Producers.name == ean_device.producer.name).first()
+#     if not producer:
+#         raise HTTPException(status_code=400, detail="Producer doesn't exist")
+#
+#     n_ean_device = crud.update_ean_device_by_ean(db=db, ean=ean_device_code, ean_device=ean_device)
+#
+#     return n_ean_device
+
+@app.put("/ean_devices/name/{ean_device_id}", response_model=schemas.EANDevicesSchema, tags=["EAN Devices"])
+async def update_ean_device_by_name(ean_device_id: int, ean_device: schemas.EANDevicesSchema, db: Session = Depends(get_db)):
+    print('HALO' + str(ean_device_id))
+    print(ean_device)
+    db_ean_device = crud.get_ean_device_by_id(db, ean_device_id=ean_device_id)
     if db_ean_device is None:
         raise HTTPException(status_code=404, detail="EAN Device not found")
     n_ean_device = db.query(models.EAN_Devices).filter(models.EAN_Devices.ean == ean_device.ean).first()
@@ -315,9 +337,10 @@ async def update_ean_device_by_ean(ean_device_code: str, ean_device: schemas.EAN
     if not producer:
         raise HTTPException(status_code=400, detail="Producer doesn't exist")
 
-    n_ean_device = crud.update_ean_device_by_ean(db=db, ean=ean_device_code, ean_device=ean_device)
+    n_ean_device = crud.update_ean_device_by_id_name(db=db, ean_device_id=ean_device_id, ean_device=ean_device)
 
     return n_ean_device
+
 
 @app.put("/ean_devices/id/{ean_device_id}", response_model=schemas.EANDevicesSchema, tags=["EAN Devices"])
 async def update_ean_device_by_id(ean_device_id: int, ean_device: schemas.EANDevicesSchema, db: Session = Depends(get_db)):
@@ -407,6 +430,7 @@ async def create_device_by_id(device: schemas.DevicesSchema, db: Session = Depen
     ean_device = db.query(models.EAN_Devices).filter(models.EAN_Devices.ean_device_id == device.ean_device.ean_device_id).first()
     if not ean_device:
         raise HTTPException(status_code=400, detail="EAN Device doesn't exist")
+    # print(device)
     return crud.create_device_by_id(db=db, device=device)
 
 @app.put("/devices/name/{device_name}", response_model=schemas.DevicesSchema, tags=["Devices"])
@@ -491,4 +515,4 @@ async def delete_device_by_id(device_id: int, db: Session = Depends(get_db)):
     return crud.delete_device_by_id(db=db, device_id=device_id)
 
 if __name__ == "__main__":
-    uvicorn.run(app)
+    uvicorn.run(host="0.0.0.0", port=8000, app=app)

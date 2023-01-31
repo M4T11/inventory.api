@@ -223,6 +223,21 @@ def update_ean_device_by_id(db: Session, ean_device_id: int, ean_device: schemas
     db.refresh(n_ean_device)
     return n_ean_device
 
+def update_ean_device_by_id_name(db: Session, ean_device_id: int, ean_device: schemas.EANDevicesSchema):
+    n_ean_device = db.query(models.EAN_Devices).filter(models.EAN_Devices.ean_device_id == ean_device_id).first()
+    n_ean_device.ean = ean_device.ean
+
+    category = db.query(models.Categories).filter(models.Categories.name == ean_device.category.name).first()
+    n_ean_device.category = category
+
+    producer = db.query(models.Producers).filter(models.Producers.name == ean_device.producer.name).first()
+    n_ean_device.producer = producer
+    n_ean_device.model = ean_device.model
+
+    db.commit()
+    db.refresh(n_ean_device)
+    return n_ean_device
+
 def delete_ean_device_by_ean(db: Session, ean: str):
     db_ean_device = db.query(models.EAN_Devices).filter(models.EAN_Devices.ean == ean).first()
     db.delete(db_ean_device)
@@ -259,7 +274,7 @@ def create_device_by_name(db: Session, device: schemas.DevicesSchema):
     location = db.query(models.Locations).filter(models.Locations.name == device.location.name).first()
     db_device = models.Devices(name=device.name, serial_number=device.serial_number,
                                description=device.description, ean_device=ean_device,
-                               location=location, status=device.status, date_added=date.today(),
+                               location=location, quantity=device.quantity, condition=device.condition, status=device.status, date_added=date.today(),
                                qr_code=str(uuid.uuid4()))
     db.add(db_device)
     db.commit()
@@ -271,7 +286,7 @@ def create_device_by_id(db: Session, device: schemas.DevicesSchema):
     location = db.query(models.Locations).filter(models.Locations.location_id == device.location.location_id).first()
     db_device = models.Devices(name=device.name, serial_number=device.serial_number,
                                description=device.description, ean_device=ean_device,
-                               location=location, status=device.status, date_added=date.today(),
+                               location=location, quantity=device.quantity, condition=device.condition, status=device.status, date_added=date.today(),
                                qr_code=str(uuid.uuid4()))
     db.add(db_device)
     db.commit()
@@ -289,6 +304,8 @@ def update_device_by_name(db: Session, name: str, device: schemas.DevicesSchema)
     location = db.query(models.Locations).filter(models.Locations.name == device.location.name).first()
     n_device.location = location
 
+    n_device.quantity = device.quantity
+    n_device.condition = device.condition
     n_device.status = device.status
     n_device.date_added = n_device.date_added
     n_device.qr_code = n_device.qr_code
@@ -307,6 +324,8 @@ def update_device_by_id(db: Session, device_id: int, device: schemas.DevicesSche
     location = db.query(models.Locations).filter(models.Locations.location_id == device.location.location_id).first()
     n_device.location = location
 
+    n_device.quantity = device.quantity
+    n_device.condition = device.condition
     n_device.status = device.status
     n_device.date_added = n_device.date_added
     n_device.qr_code = n_device.qr_code

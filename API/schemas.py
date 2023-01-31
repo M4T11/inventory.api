@@ -44,6 +44,8 @@ class DevicesSchema(BaseModel):
     description: str
     ean_device: EANDevicesSchema
     location: LocationsSchema
+    quantity: int
+    condition: str
     status: str
     date_added: date
     qr_code: str

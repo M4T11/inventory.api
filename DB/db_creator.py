@@ -48,11 +48,13 @@ def create_tables():
         """
         CREATE TABLE Devices (
             Device_id SERIAL PRIMARY KEY,
-            Name VARCHAR(255) NOT NULL,
+            Name VARCHAR(255),
             Serial_number VARCHAR(255),
             Description VARCHAR(255),
             EAN_Device_id SERIAL REFERENCES EAN_Devices(EAN_Device_id),
             Location_id SERIAL REFERENCES Locations(Location_id),
+            Quantity INT NOT NULL,
+            Condition VARCHAR(255) NOT NULL,
             Status VARCHAR(255) NOT NULL,
             Date_added DATE NOT NULL,
             QR_code VARCHAR(255) NOT NULL
