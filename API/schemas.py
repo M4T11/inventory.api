@@ -49,19 +49,20 @@ class DevicesSchema(BaseModel):
     status: str
     date_added: date
     qr_code: str
+    returned: bool
 
     class Config:
         orm_mode = True
 
 
-class UsersSchema(BaseModel):
-    user_id: Optional[int] = None
-    username: str
-    password: str
-    email: str
-
-    class Config:
-        orm_mode = True
+# class UsersSchema(BaseModel):
+#     user_id: Optional[int] = None
+#     username: str
+#     password: str
+#     email: str
+#
+#     class Config:
+#         orm_mode = True
 
 
 class DeviceHistoriesSchema(BaseModel):
@@ -69,7 +70,7 @@ class DeviceHistoriesSchema(BaseModel):
     event: str
     device: DevicesSchema
     date: datetime
-    user: UsersSchema
+    # user: UsersSchema
 
     class Config:
         orm_mode = True

@@ -50,34 +50,36 @@ def create_tables():
             Device_id SERIAL PRIMARY KEY,
             Name VARCHAR(255),
             Serial_number VARCHAR(255),
-            Description VARCHAR(255),
+            Description VARCHAR(10000),
             EAN_Device_id SERIAL REFERENCES EAN_Devices(EAN_Device_id),
             Location_id SERIAL REFERENCES Locations(Location_id),
             Quantity INT NOT NULL,
             Condition VARCHAR(255) NOT NULL,
             Status VARCHAR(255) NOT NULL,
             Date_added DATE NOT NULL,
-            QR_code VARCHAR(255) NOT NULL
+            QR_code VARCHAR(255) NOT NULL,
+            Returned BOOLEAN NOT NULL DEFAULT FALSE
             )
         """,
-        """
-        CREATE TABLE Users (
-            User_id SERIAL PRIMARY KEY,
-            Username VARCHAR(255) NOT NULL,
-            Password VARCHAR(255) NOT NULL,
-            Email VARCHAR (255) NOT NULL
-            )
-        """,
+        # """
+        # CREATE TABLE Users (
+        #     User_id SERIAL PRIMARY KEY,
+        #     Username VARCHAR(255) NOT NULL,
+        #     Password VARCHAR(255) NOT NULL,
+        #     Email VARCHAR (255) NOT NULL
+        #     )
+        # """,
         """
         CREATE TABLE Device_histories (
             History_id SERIAL PRIMARY KEY,
             Event VARCHAR(255) NOT NULL,
             Device_id SERIAL REFERENCES Devices(Device_id),
-            Date TIMESTAMP NOT NULL,
-            User_id SERIAL REFERENCES Users(User_id)
+            Date TIMESTAMP NOT NULL
+            
             )
         """,
     )
+    # jako ostatnie w device_histories User_id SERIAL REFERENCES Users(User_id)
 
     connection = None
     try:

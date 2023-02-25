@@ -48,20 +48,21 @@ class Devices(Base):
     status = Column(String)
     date_added = Column(Date)
     qr_code = Column(String)
+    returned = Column(BOOLEAN)
 
     location = relationship('Locations', back_populates='devices', lazy='subquery')
     ean_device = relationship('EAN_Devices', back_populates='devices', lazy='subquery')
     history = relationship('Device_histories', back_populates='device')
 
 
-class Users(Base):
-    __tablename__ = "users"
-    user_id = Column(Integer, primary_key=True, index=True)
-    username = Column(String)
-    password = Column(String)
-    email = Column(String)
-
-    devices_history = relationship('Device_histories', back_populates="user")
+# class Users(Base):
+#     __tablename__ = "users"
+#     user_id = Column(Integer, primary_key=True, index=True)
+#     username = Column(String)
+#     password = Column(String)
+#     email = Column(String)
+#
+#     devices_history = relationship('Device_histories', back_populates="user")
 
 
 class Device_histories(Base):
@@ -70,7 +71,7 @@ class Device_histories(Base):
     event = Column(String)
     device_id = Column(Integer, ForeignKey('devices.device_id'))
     date = Column(TIMESTAMP)
-    user_id = Column(Integer, ForeignKey('users.user_id'))
+    # user_id = Column(Integer, ForeignKey('users.user_id'))
 
-    user = relationship('Users', back_populates='devices_history', lazy='subquery')
+    # user = relationship('Users', back_populates='devices_history', lazy='subquery')
     device = relationship('Devices', back_populates='history', lazy='subquery')

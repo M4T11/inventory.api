@@ -263,6 +263,9 @@ def get_devices(db: Session, location_name=None, ean_code=None):
 def get_device_by_name(db: Session, name: str):
     return db.query(models.Devices).filter(models.Devices.name == name).first()
 
+def get_device_by_sn(db: Session, serial_number: str):
+    return db.query(models.Devices).filter(models.Devices.serial_number == serial_number).first()
+
 def get_device_by_id(db: Session, device_id: int):
     return db.query(models.Devices).filter(models.Devices.device_id == device_id).first()
 
@@ -275,7 +278,8 @@ def create_device_by_name(db: Session, device: schemas.DevicesSchema):
     db_device = models.Devices(name=device.name, serial_number=device.serial_number,
                                description=device.description, ean_device=ean_device,
                                location=location, quantity=device.quantity, condition=device.condition, status=device.status, date_added=date.today(),
-                               qr_code=str(uuid.uuid4()))
+                               qr_code=device.qr_code, returned=device.returned)
+    # qr_code = str(uuid.uuid4()))
     db.add(db_device)
     db.commit()
     db.refresh(db_device)
@@ -287,7 +291,7 @@ def create_device_by_id(db: Session, device: schemas.DevicesSchema):
     db_device = models.Devices(name=device.name, serial_number=device.serial_number,
                                description=device.description, ean_device=ean_device,
                                location=location, quantity=device.quantity, condition=device.condition, status=device.status, date_added=date.today(),
-                               qr_code=str(uuid.uuid4()))
+                               qr_code=device.qr_code, returned=device.returned)
     db.add(db_device)
     db.commit()
     db.refresh(db_device)
@@ -308,7 +312,8 @@ def update_device_by_name(db: Session, name: str, device: schemas.DevicesSchema)
     n_device.condition = device.condition
     n_device.status = device.status
     n_device.date_added = n_device.date_added
-    n_device.qr_code = n_device.qr_code
+    n_device.qr_code = device.qr_code
+    n_device.returned = device.returned
     db.commit()
     db.refresh(n_device)
     return n_device
@@ -328,7 +333,8 @@ def update_device_by_id(db: Session, device_id: int, device: schemas.DevicesSche
     n_device.condition = device.condition
     n_device.status = device.status
     n_device.date_added = n_device.date_added
-    n_device.qr_code = n_device.qr_code
+    n_device.qr_code = device.qr_code
+    n_device.returned = device.returned
     db.commit()
     db.refresh(n_device)
     return n_device
@@ -347,29 +353,29 @@ def delete_device_by_id(db: Session, device_id: int):
     db.commit()
     return db_device
 
-# # DeviceHistories
-# def get_devices_histories(db: Session):
-#     return db.query(models.Device_histories).all()
-#
-# def get_device_histories_by_name(db: Session, name: str):
-#     return db.query(models.Device_histories).join(models.Devices).filter(models.Devices.name == name).all()
-#
-# def get_device_histories_by_id(db: Session, device_id: int):
-#     return db.query(models.Device_histories).join(models.Devices).filter(models.Devices.device_id == device_id).all()
-#
-# def create_device_history(db: Session, event, device, user):
-#     db_device_history = models.Device_histories(event=event, device=device, date=datetime.now(), user=user)
-#     db.add(db_device_history)
-#     db.commit()
-#     db.refresh(db_device_history)
-#     return db_device_history
-#
-# def delete_device_history_by_name(db: Session, name: str):
-#     db_device_history = db.query(models.Device_histories).join(models.Devices).filter(models.Devices.name == name).all()
-#     for d in db_device_history:
-#         db.delete(d)
-#         db.commit()
-#     return db_device_history
+# DeviceHistories
+def get_devices_histories(db: Session):
+    return db.query(models.Device_histories).all()
+
+def get_device_histories_by_name(db: Session, name: str):
+    return db.query(models.Device_histories).join(models.Devices).filter(models.Devices.name == name).all()
+
+def get_device_histories_by_id(db: Session, device_id: int):
+    return db.query(models.Device_histories).join(models.Devices).filter(models.Devices.device_id == device_id).all()
+
+def create_device_history(db: Session, event, device):
+    db_device_history = models.Device_histories(event=event, device=device, date=datetime.now())
+    db.add(db_device_history)
+    db.commit()
+    db.refresh(db_device_history)
+    return db_device_history
+
+def delete_device_history_by_name(db: Session, name: str):
+    db_device_history = db.query(models.Device_histories).join(models.Devices).filter(models.Devices.name == name).all()
+    for d in db_device_history:
+        db.delete(d)
+        db.commit()
+    return db_device_history
 
 # # UserAuthentication
 # def get_users(db: Session):

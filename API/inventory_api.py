@@ -322,8 +322,6 @@ async def create_ean_device_by_id(ean_device: schemas.EANDevicesSchema, db: Sess
 
 @app.put("/ean_devices/name/{ean_device_id}", response_model=schemas.EANDevicesSchema, tags=["EAN Devices"])
 async def update_ean_device_by_name(ean_device_id: int, ean_device: schemas.EANDevicesSchema, db: Session = Depends(get_db)):
-    print('HALO' + str(ean_device_id))
-    print(ean_device)
     db_ean_device = crud.get_ean_device_by_id(db, ean_device_id=ean_device_id)
     if db_ean_device is None:
         raise HTTPException(status_code=404, detail="EAN Device not found")
@@ -406,6 +404,13 @@ async def get_device_by_qr_code(qr_code: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Device not found")
     return db_device
 
+@app.get("/devices/sn/{sn}", response_model=schemas.DevicesSchema, tags=["Devices"])
+async def get_device_by_sn(sn: str, db: Session = Depends(get_db)):
+    db_device = crud.get_device_by_sn(db, serial_number=sn)
+    if db_device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return db_device
+
 @app.post("/devices/name", response_model=schemas.DevicesSchema, tags=["Devices"], status_code=201)
 async def create_device_by_name(device: schemas.DevicesSchema, db: Session = Depends(get_db)):
     db_device = crud.get_device_by_name(db, name=device.name)
@@ -421,9 +426,12 @@ async def create_device_by_name(device: schemas.DevicesSchema, db: Session = Dep
 
 @app.post("/devices/id", response_model=schemas.DevicesSchema, tags=["Devices"], status_code=201)
 async def create_device_by_id(device: schemas.DevicesSchema, db: Session = Depends(get_db)):
-    db_device = crud.get_device_by_id(db, device_id=device.device_id)
-    if db_device:
-        raise HTTPException(status_code=400, detail="Device already exists")
+    db_device_id = crud.get_device_by_id(db, device_id=device.device_id)
+    db_device_sn = crud.get_device_by_sn(db, serial_number=device.serial_number)
+    db_device_qr = crud.get_device_by_qr_code(db, qr_code=device.qr_code)
+
+    if db_device_id or db_device_sn or db_device_qr:
+        raise HTTPException(status_code=409, detail="Device already exists")
     location = db.query(models.Locations).filter(models.Locations.location_id == device.location.location_id).first()
     if not location:
         raise HTTPException(status_code=400, detail="Location doesn't exist")
@@ -438,10 +446,13 @@ async def update_device_by_name(device_name: str, device: schemas.DevicesSchema,
     db_device = crud.get_device_by_name(db, name=device_name)
     old_location_id = db_device.location_id
     old_location_name = db_device.location.name
+    old_quantity = db_device.quantity
+    old_returned = db_device.returned
     old_status = db_device.status
+
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
-    n_device = db.query(models.Devices).filter(models.Devices.name == device.name).first()
+    n_device = db.query(models.Devices).filter(models.Devices.device_id == device.device_id).first()
     if n_device is not None and n_device.name != db_device.name:
         raise HTTPException(status_code=400, detail="Device already exists")
     location = db.query(models.Locations).filter(models.Locations.name == device.location.name).first()
@@ -454,11 +465,22 @@ async def update_device_by_name(device_name: str, device: schemas.DevicesSchema,
     n_device = crud.update_device_by_name(db=db, name=device_name, device=device)
 
     # TODO
-    # if old_location_id != n_device.location_id:
-    #     crud.create_device_history(db, event=f'Zmiana lokalizacji urządzenia: {old_location_name} -> {n_device.location.name}', device=n_device, user=current_user)
-    #
-    # if old_status != n_device.status:
-    #     crud.create_device_history(db, event=f'Zmiana statusu urządzenia: {old_status} -> {n_device.status}', device=n_device, user=current_user)
+    if old_location_id != n_device.location_id:
+        crud.create_device_history(db,
+                                   event=f'Zmiana lokalizacji urządzenia: {old_location_name} -> {n_device.location.name}',
+                                   device=n_device)
+    if old_quantity != n_device.quantity:
+        crud.create_device_history(db,
+                                   event=f'Zmiana ilości sztuk: {old_quantity} -> {n_device.quantity}',
+                                   device=n_device)
+    if old_returned != n_device.returned:
+        crud.create_device_history(db,
+                                   event=f'Zarejestrowano zwrot urządzenia (ID: {n_device.qr_code}',
+                                   device=n_device)
+
+    if old_status != n_device.status:
+        crud.create_device_history(db, event=f'Zmiana statusu urządzenia: {old_status} -> {n_device.status}',
+                                   device=n_device)
 
     return n_device
 
@@ -467,10 +489,12 @@ async def update_device_by_id(device_id: int, device: schemas.DevicesSchema, db:
     db_device = crud.get_device_by_id(db, device_id=device_id)
     old_location_id = db_device.location_id
     old_location_name = db_device.location.name
+    old_quantity = db_device.quantity
+    old_returned = db_device.returned
     old_status = db_device.status
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
-    n_device = db.query(models.Devices).filter(models.Devices.name == device.name).first()
+    n_device = db.query(models.Devices).filter(models.Devices.device_id == device.device_id).first()
     if n_device is not None and n_device.name != db_device.name:
         raise HTTPException(status_code=400, detail="Device already exists")
     location = db.query(models.Locations).filter(models.Locations.location_id == device.location.location_id).first()
@@ -482,14 +506,22 @@ async def update_device_by_id(device_id: int, device: schemas.DevicesSchema, db:
 
     n_device = crud.update_device_by_id(db=db, device_id=device_id, device=device)
     # TODO
-    # if old_location_id != n_device.location_id:
-    #     crud.create_device_history(db,
-    #                                event=f'Zmiana lokalizacji urządzenia: {old_location_name} -> {n_device.location.name}',
-    #                                device=n_device)
-    #
-    # if old_status != n_device.status:
-    #     crud.create_device_history(db, event=f'Zmiana statusu urządzenia: {old_status} -> {n_device.status}',
-    #                                device=n_device)
+    if old_location_id != n_device.location_id:
+        crud.create_device_history(db,
+                                   event=f'Zmiana lokalizacji urządzenia: {old_location_name} -> {n_device.location.name}',
+                                   device=n_device)
+    if old_quantity != n_device.quantity:
+        crud.create_device_history(db,
+                                   event=f'Zmiana ilości sztuk: {old_quantity} -> {n_device.quantity}',
+                                   device=n_device)
+    if old_returned != n_device.returned:
+        crud.create_device_history(db,
+                                   event=f'Zarejestrowano zwrot urządzenia (ID: {n_device.qr_code})',
+                                   device=n_device)
+
+    if old_status != n_device.status:
+        crud.create_device_history(db, event=f'Zmiana statusu urządzenia: {old_status} -> {n_device.status}',
+                                   device=n_device)
 
     return n_device
 
@@ -497,7 +529,7 @@ async def update_device_by_id(device_id: int, device: schemas.DevicesSchema, db:
 async def delete_device_by_name(device_name: str, db: Session = Depends(get_db)):
     db_device = crud.get_device_by_name(db, name=device_name)
     # TODO
-    # crud.delete_device_history_by_name(db, name=device_name)
+    crud.delete_device_history_by_name(db, name=device_name)
     # crud.delete_verification_device_link(db, device_id=db_device.device_id)
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
@@ -508,11 +540,44 @@ async def delete_device_by_name(device_name: str, db: Session = Depends(get_db))
 async def delete_device_by_id(device_id: int, db: Session = Depends(get_db)):
     db_device = crud.get_device_by_id(db, device_id=device_id)
     # TODO
-    # crud.delete_device_history_by_name(db, name=db_device.name)
+    crud.delete_device_history_by_name(db, name=db_device.name)
     # crud.delete_verification_device_link(db, device_id=db_device.device_id)
     if db_device is None:
         raise HTTPException(status_code=404, detail="Device not found")
     return crud.delete_device_by_id(db=db, device_id=device_id)
+
+# DeviceHistories
+@app.get("/deviceshistories/", response_model=List[schemas.DeviceHistoriesSchema], tags=["DeviceHistories"])
+async def get_devices_histories(db: Session = Depends(get_db)):
+    devices_histories = crud.get_devices_histories(db)
+    return devices_histories
+
+
+@app.get("/deviceshistories/{device_name}", response_model=List[schemas.DeviceHistoriesSchema], tags=["DeviceHistories"])
+async def get_device_histories_by_name(device_name: str, db: Session = Depends(get_db)):
+    db_device_history = crud.get_device_histories_by_name(db, name=device_name)
+    if db_device_history is None:
+        raise HTTPException(status_code=404, detail=f"History not found for {device_name}")
+    return db_device_history
+
+@app.get("/deviceshistories/id/{device_id}", response_model=List[schemas.DeviceHistoriesSchema], tags=["DeviceHistories"])
+async def get_device_histories_by_id(device_id: int, db: Session = Depends(get_db)):
+    db_device_history = crud.get_device_histories_by_id(db, device_id)
+    if db_device_history is None:
+        raise HTTPException(status_code=404, detail=f"History not found for device with id {device_id}")
+    return db_device_history
+
+
+@app.post("/deviceshistories/", response_model=schemas.DeviceHistoriesSchema, tags=["DeviceHistories"], status_code=201)
+async def create_device_history(device_history: schemas.DeviceHistoriesSchema, db: Session = Depends(get_db)):
+    device = db.query(models.Devices).filter(models.Devices.device_id == device_history.device.device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device doesn't exist")
+    # user = db.query(models.Users).filter(models.Users.username == device_history.user.username).first()
+    # if not user:
+    #     raise HTTPException(status_code=404, detail="User doesn't exist")
+    return crud.create_device_history(db=db, device_history=device_history)
+
 
 if __name__ == "__main__":
     uvicorn.run(host="0.0.0.0", port=8000, app=app)
