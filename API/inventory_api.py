@@ -427,10 +427,14 @@ async def create_device_by_name(device: schemas.DevicesSchema, db: Session = Dep
 @app.post("/devices/id", response_model=schemas.DevicesSchema, tags=["Devices"], status_code=201)
 async def create_device_by_id(device: schemas.DevicesSchema, db: Session = Depends(get_db)):
     db_device_id = crud.get_device_by_id(db, device_id=device.device_id)
-    db_device_sn = crud.get_device_by_sn(db, serial_number=device.serial_number)
     db_device_qr = crud.get_device_by_qr_code(db, qr_code=device.qr_code)
 
-    if db_device_id or db_device_sn or db_device_qr:
+    if device.serial_number != "":
+        db_device_sn = crud.get_device_by_sn(db, serial_number=device.serial_number)
+        if db_device_sn:
+            raise HTTPException(status_code=409, detail="Device already exists")
+
+    if db_device_id or db_device_qr:
         raise HTTPException(status_code=409, detail="Device already exists")
     location = db.query(models.Locations).filter(models.Locations.location_id == device.location.location_id).first()
     if not location:
